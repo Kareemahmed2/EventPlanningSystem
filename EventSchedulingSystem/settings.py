@@ -22,6 +22,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-9--%g9bjrw_ndlxa!*3__mw$5q%!7vbl-$r^ljjfyjk7=ff!a%'
 
+
+API_KEY = "AIzaSyDZK66XqZqZqZqZqZqZqZqZqZqZqZqZqZq"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -40,7 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'users.apps.UsersConfig',
-
+    'corsheaders'
 ]
 
 MIDDLEWARE = [
@@ -51,6 +53,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'EventSchedulingSystem.urls'
@@ -141,6 +144,10 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny', # Allows access to auth endpoints
+        'rest_framework.permissions.AllowAny',
     ]
+
 }
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:4200",  # Angular default port
+]
