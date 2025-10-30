@@ -22,7 +22,7 @@ def signup(request):
     user = User.objects.create_user(username=username, password=password , email=email)
     token, _ = Token.objects.get_or_create(user=user)
 
-    return Response({'message': 'User created successfully'}, status=status.HTTP_201_CREATED)
+    return Response({'message': 'User created successfully' , 'token': token.key}, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])
