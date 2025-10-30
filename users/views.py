@@ -19,7 +19,8 @@ def signup(request):
         return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
 
 
-    user = User.objects.create_user(username=username, password=password , email=email)
+    user = User.objects.create_user(username=username, password=password, email=email)
+    user.save()
     token, _ = Token.objects.get_or_create(user=user)
 
     return Response({'message': 'User created successfully' , 'token': token.key}, status=status.HTTP_201_CREATED)
@@ -32,6 +33,6 @@ def login(request):
     user = authenticate(username=username, password=password)
     if user is not None:
         token, _ = Token.objects.get_or_create(user=user)
-        return  Response({'message': 'Login sucessful' , 'token': token.key}, status=status.HTTP_200_OK)
+        return Response({'message': 'Login successful' , 'token': token.key}, status=status.HTTP_200_OK)
     else:
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
