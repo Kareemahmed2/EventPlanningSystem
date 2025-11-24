@@ -133,6 +133,9 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Use custom user model compatible with MongoDB/djongo
+AUTH_USER_MODEL = 'users.User'
+
 # New additions for authentication endpoints
 # Define the URL to redirect to after successful login/logout
 LOGIN_REDIRECT_URL = '/'

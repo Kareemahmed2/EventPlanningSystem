@@ -2,12 +2,13 @@ from django.shortcuts import render
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 
 @api_view(['POST'])
 def signup(request):
+    User = get_user_model()
     username = request.data.get('username')
     password = request.data.get('password')
     email = request.data.get('email')
@@ -24,7 +25,6 @@ def signup(request):
     token, _ = Token.objects.get_or_create(user=user)
 
     return Response({'message': 'User created successfully' , 'token': token.key}, status=status.HTTP_201_CREATED)
-
 
 @api_view(['POST'])
 def login(request):
