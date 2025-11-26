@@ -65,7 +65,7 @@ def delete_event(request, id):
 #PATCH api/events/:id/attendance
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
-def update_event(request, id):
+def update_attendees(request, id):
     try:
         event = Event.objects.get(id=id)
     except Event.DoesNotExist:
@@ -77,6 +77,34 @@ def update_event(request, id):
     attendees = event.attendees
     attendees[email] = status
     event.attendees = attendees
+    event.save()
+
+    return Response({'message': 'updated'}, status=200)
+
+
+#PATCH EDIT Event
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_event(request, id):
+    try:
+        event = Event.objects.get(id=id)
+    except Event.DoesNotExist:
+        return Response({'error': 'Event not found'}, status=404)
+
+    updatable_fields = ['title', 'description', 'date', 'location', 'invitees']
+    for field in updatable_fields:
+        if field in request.data:
+            setattr(event, field, request.data[field])
+
+
+    email = request.data.get('email')
+    status = request.data.get('status')   #GOING/MAYBE/NOTGOING
+
+    if email and status:
+        attendees = event.attendees
+        attendees[email] = status
+        event.attendees = attendees
     event.save()
 
     return Response({'message': 'updated'}, status=200)
