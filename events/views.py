@@ -1,11 +1,17 @@
+from django.db.models import Q
+from datetime import datetime
 from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 
+from . import models
 from .models import Event
 from .serializers import EventSerializer
+
+
+
 
 
 # GET /api/events
@@ -35,14 +41,11 @@ def event_detail(request, id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_event(request):
-    data = request.data
-    serializer = EventSerializer(data=data)
-
+    serializer = EventSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save(organizer=request.user)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.data, status=201)
+    return Response(serializer.errors, status=400)
 
 
 #DELETE /api/events/:id
@@ -132,11 +135,122 @@ def remove_invitee(request, id, email):
     try:
         event = Event.objects.get(id=id)
     except Event.DoesNotExist:
-        return Response({'error': 'Event not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Event not found'}, status=404)
 
-    if email in event.invitees:
-        event.invitees.remove(email)
-        event.save()
 
-    return Response({'message': 'Invitee removed'}, status=status.HTTP_200_OK)
+    if request.user != event.organizer:
+        return Response({'error': 'Not allowed'}, status=403)
 
+
+    if event.invitees is None:
+        event.invitees = []
+
+    if isinstance(event.invitees, dict):
+        if email in event.invitees:
+            del event.invitees[email]
+        else:
+            return Response({'error': 'Email not found'}, status=404)
+
+    # If invitees is a list
+    elif isinstance(event.invitees, list):
+        if email in event.invitees:
+            event.invitees.remove(email)
+        else:
+            return Response({'error': 'Email not found'}, status=404)
+
+    else:
+        return Response({'error': 'Invalid invitees format'}, status=500)
+
+    event.save()
+    return Response({'message': 'Invitee removed'}, status=200)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def invited_events(request):
+    user_email = request.user.email
+
+    events = Event.objects.all()
+
+    invited = []
+
+    for event in events:
+
+        if user_email in (event.invitees or []):
+            invited.append(event)
+            continue
+
+
+        if isinstance(event.attendees, dict) and user_email in event.attendees:
+            invited.append(event)
+            continue
+
+    serializer = EventSerializer(invited, many=True)
+    return Response(serializer.data, status=200)
+
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_events(request):
+    try:
+        keyword = request.GET.get('keyword', '').strip()
+        date_str = request.GET.get('date', '').strip()
+        role_filter = request.GET.get('role', '').strip().lower()
+
+        user = request.user
+        user_email = user.email
+
+        events = Event.objects.all()
+
+        #Keyword filter
+        if keyword:
+            events = events.filter(
+                Q(title__icontains=keyword) |
+                Q(description__icontains=keyword)
+            )
+
+        #Date filter
+        if date_str:
+            try:
+                parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                events = events.filter(date=parsed_date)
+            except ValueError:
+                return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=400)
+
+        #Role filter
+        if role_filter == "organizer":
+            events = events.filter(organizer=user)
+        elif role_filter == "attendee":
+            # Use string-based contains instead of list for Djongo
+            events = events.filter(
+                Q(invitees__icontains=user_email) |
+                Q(attendees__has_key=user_email)
+            )
+
+        safe_events = []
+        for e in events:
+            safe_events.append({
+                "id": e.id,
+                "title": e.title,
+                "description": e.description,
+                "date": e.date,
+                "location": e.location,
+                "organizer": e.organizer_id,
+                "invitees": e.invitees,
+                "attendees": e.attendees,
+                "created_at": e.created_at,
+                "role": (
+                    "organizer" if e.organizer == user else
+                    "attendee" if user_email in (e.invitees or []) or user_email in (e.attendees or {}) else
+                    "none"
+                )
+            })
+
+        return Response(safe_events, status=200)
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return Response({"error": str(e)}, status=500)

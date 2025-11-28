@@ -10,5 +10,9 @@ urlpatterns = [
     path('<int:id>/attendance/', views.update_attendees),
     path('<int:id>/invitees/', views.add_invitees),
     path('<int:id>/invitees/<str:email>', views.remove_invitee),
+    path('invited/', views.invited_events),
+    path('search/', views.search_events),
+
+
 
 ]
