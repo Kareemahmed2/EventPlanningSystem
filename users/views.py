@@ -6,6 +6,8 @@ from rest_framework.decorators import api_view, permission_classes
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
+from .serializers import UserSerializer
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -21,12 +23,20 @@ def signup(request):
     if User.objects.filter(username=username).exists():
         return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
 
-
     user = User.objects.create_user(username=username, password=password, email=email)
     user.save()
     token, _ = Token.objects.get_or_create(user=user)
 
-    return Response({'message': 'User created successfully' , 'token': token.key}, status=status.HTTP_201_CREATED)
+
+    serializer = UserSerializer(user)
+
+    # Return the token AND the structured user data
+    return Response({
+        'message': 'User created successfully',
+        'token': token.key,
+        'user': serializer.data  # Add serialized user data here
+    }, status=status.HTTP_201_CREATED)
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -34,8 +44,18 @@ def login(request):
     username = request.data.get('username')
     password = request.data.get('password')
     user = authenticate(username=username, password=password)
+
     if user is not None:
         token, _ = Token.objects.get_or_create(user=user)
-        return Response({'message': 'Login successful' , 'token': token.key}, status=status.HTTP_200_OK)
+
+        # Serialize the authenticated user object
+        serializer = UserSerializer(user)
+
+        # Return the token AND the structured user data
+        return Response({
+            'message': 'Login successful',
+            'token': token.key,
+            'user': serializer.data  # Add serialized user data here
+        }, status=status.HTTP_200_OK)
     else:
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
