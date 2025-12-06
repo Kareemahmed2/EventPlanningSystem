@@ -10,7 +10,7 @@ from django.utils import timezone
 class UserManager(BaseUserManager):
     """Manager for custom User that works with djongo ObjectId PK."""
 
-    using = None  # will be set by Django; keep for clarity
+    using = None
 
     def create_user(self, username, email=None, password=None, **extra_fields):
         if not username:

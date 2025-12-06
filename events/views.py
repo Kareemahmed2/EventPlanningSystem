@@ -41,9 +41,9 @@ def event_detail(request, id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_event(request):
-    serializer = EventSerializer(data=request.data)
+    serializer = EventSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
-        serializer.save(organizer=request.user)
+        serializer.save()  # organizer will now be set automatically
         return Response(serializer.data, status=201)
     return Response(serializer.errors, status=400)
 
